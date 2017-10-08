@@ -53,6 +53,7 @@ function HttpAccessory(log, config) {
                         that.log(err.message);
                     }
                 } else {
+		    that.log(body);
                     done(null, body);
                 }
             })
@@ -160,8 +161,8 @@ HttpAccessory.prototype = {
                 callback(error, response, body)
             })
     },
-
     setPowerState: function (powerState, callback) {
+	this.log("in setPowerState");	
         this.log("Power On", powerState);
         this.log("Enable Set", this.enableSet);
         this.log("Current Level", this.currentlevel);
@@ -209,28 +210,28 @@ HttpAccessory.prototype = {
 
         var url = this.status_url;
         this.log("Getting power state");
-
         this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function (error, response, responseBody) {
             if (error) {
                 this.log("HTTP get power function failed: %s", error.message);
                 callback(error);
             } else {
                 var binaryState;
+		this.log(responseBody);
                 this.log("Status Config On", this.status_on);
                 if (this.status_on && this.status_off) {	//Check if custom status checks are set
-                    var customStatusOn = that.status_on;
-                    var customStatusOff = that.status_off;
+                    var customStatusOn = this.status_on;
+                    var customStatusOff = this.status_off;
                     var statusOn, statusOff;
 
                     // Check to see if custom states are a json object and if so compare to see if either one matches the state response
-                    if (responseBody.startsWith("{")) {
-                        statusOn = compareStates(customStatusOn, JSON.parse(responseBody));
-                        statusOff = compareStates(customStatusOff, JSON.parse(responseBody));
-                    } else {
+                    // if (responseBody.startsWith("{")) {
+                    //     statusOn = compareStates(customStatusOn, JSON.parse(responseBody));
+                    //     statusOff = compareStates(customStatusOff, JSON.parse(responseBody));
+                    // } else {
                         statusOn = responseBody.includes(customStatusOn);
                         statusOff = responseBody.includes(customStatusOff);
-                    }
-                    that.log("Status On Get Power State", statusOn);
+                //}
+                    this.log("Status On Get Power State", statusOn);
                     if (statusOn) binaryState = 1;
                     // else binaryState = 0;
                     if (statusOff) binaryState = 0;
@@ -258,15 +259,18 @@ HttpAccessory.prototype = {
                 this.log("HTTP get brightness function failed: %s", error.message);
                 callback(error);
             } else {
-                var binaryState = parseInt(responseBody.replace(/\D/g, ""));
-                var level = binaryState;
-                this.log("brightness state is currently %s", binaryState);
+		this.log(responseBody);
+                //var binaryState = parseInt(responseBody.replace(/\D/g, ""));
+		var msg = JSON.parse(responseBody);
+                var level = msg["brightness"];
+                this.log("brightness state is currently %d", level);
                 callback(null, level);
             }
         }.bind(this));
     },
 
     setBrightness: function (level, callback) {
+	this.log("in setBrightness");
         if (this.enableSet === true) {
             if (!this.brightness_url) {
                 this.log.warn("Ignoring request; No brightness url defined.");
